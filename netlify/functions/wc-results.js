@@ -1,59 +1,48 @@
 // netlify/functions/wc-results.js
-// Returns finished 2026 World Cup fixtures from API-Football, key kept server-side.
+// Returns finished 2026 World Cup fixtures from football-data.org (free tier covers the World Cup).
+// Same output shape as before, so index.html needs NO changes.
 //
-// Required env var:  APIFOOTBALL_KEY   = your api-sports.io (or RapidAPI) key
+// Required env var:  FOOTBALLDATA_TOKEN = your free token from football-data.org
 // Optional env vars:
-//   WC_LEAGUE_ID  = 1        (FIFA World Cup; verify via /leagues?search=world cup)
-//   WC_SEASON     = 2026
-//   APIFOOTBALL_HOST = v3.football.api-sports.io   (default; for RapidAPI use api-football-v1.p.rapidapi.com)
+//   FD_COMPETITION = WC      (FIFA World Cup)
+//   FD_SEASON      = 2026    (omit to use the current season)
 
 exports.handler = async function () {
-  const KEY = process.env.APIFOOTBALL_KEY;
-  const LEAGUE = process.env.WC_LEAGUE_ID || "1";
-  const SEASON = process.env.WC_SEASON || "2026";
-  const HOST = process.env.APIFOOTBALL_HOST || "v3.football.api-sports.io";
+  const TOKEN = process.env.FOOTBALLDATA_TOKEN;
+  const COMP = process.env.FD_COMPETITION || "WC";
+  const SEASON = process.env.FD_SEASON || ""; // blank = current season
 
-  if (!KEY) return json(500, { error: "Missing APIFOOTBALL_KEY env var" });
+  if (!TOKEN) return json(500, { error: "Missing FOOTBALLDATA_TOKEN env var" });
 
-  const useRapid = HOST.indexOf("rapidapi") > -1;
-  const base = useRapid ? `https://${HOST}/v3` : `https://${HOST}`;
-  const headers = useRapid
-    ? { "x-rapidapi-key": KEY, "x-rapidapi-host": HOST }
-    : { "x-apisports-key": KEY };
-
-  const FINISHED = { FT: 1, AET: 1, PEN: 1 };
-  let page = 1, totalPages = 1;
-  const raw = [];
+  let url = `https://api.football-data.org/v4/competitions/${COMP}/matches?status=FINISHED`;
+  if (SEASON) url += `&season=${SEASON}`;
 
   try {
-    do {
-      const url = `${base}/fixtures?league=${LEAGUE}&season=${SEASON}&page=${page}`;
-      const r = await fetch(url, { headers });
-      const j = await r.json();
-      if (j.errors && Object.keys(j.errors).length) {
-        return json(502, { error: "API-Football error", detail: j.errors });
-      }
-      (j.response || []).forEach((x) => raw.push(x));
-      totalPages = (j.paging && j.paging.total) || 1;
-      page++;
-    } while (page <= totalPages && page <= 6);
+    const r = await fetch(url, { headers: { "X-Auth-Token": TOKEN } });
+    const j = await r.json();
 
-    const fixtures = raw
-      .filter((f) => FINISHED[f.fixture.status.short] &&
-                     f.goals.home != null && f.goals.away != null)
-      .map((f) => ({
-        id: f.fixture.id,
-        ts: f.fixture.timestamp,
-        status: f.fixture.status.short, // FT / AET / PEN (PEN counts as a draw via 120' score)
-        round: f.league.round,
-        home: f.teams.home.name,
-        away: f.teams.away.name,
-        hg: f.goals.home,
-        ag: f.goals.away,
+    if (!r.ok) {
+      return json(502, { error: "football-data error", detail: j.message || j });
+    }
+    const matches = j.matches || [];
+
+    const fixtures = matches
+      .filter((m) => m.status === "FINISHED" &&
+                     m.score && m.score.fullTime &&
+                     m.score.fullTime.home != null && m.score.fullTime.away != null)
+      .map((m) => ({
+        id: m.id,
+        ts: Math.floor(Date.parse(m.utcDate) / 1000),
+        status: m.status,
+        round: [m.stage, m.group].filter(Boolean).join(" "),
+        home: m.homeTeam.name,
+        away: m.awayTeam.name,
+        hg: m.score.fullTime.home, // shootouts: full-time score is level -> counts as a draw for Elo
+        ag: m.score.fullTime.away,
       }))
       .sort((a, b) => a.ts - b.ts);
 
-    return json(200, { count: fixtures.length, season: SEASON, fixtures });
+    return json(200, { count: fixtures.length, fixtures });
   } catch (e) {
     return json(500, { error: String(e && e.message ? e.message : e) });
   }
