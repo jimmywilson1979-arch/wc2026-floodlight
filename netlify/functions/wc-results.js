@@ -51,7 +51,11 @@ exports.handler = async function () {
 function json(statusCode, obj) {
   return {
     statusCode,
-    headers: { "content-type": "application/json", "cache-control": "public, max-age=120" },
+    headers: {
+      "content-type": "application/json",
+      "cache-control": "public, max-age=120",
+      "access-control-allow-origin": "*",
+    },
     body: JSON.stringify(obj),
   };
 }
