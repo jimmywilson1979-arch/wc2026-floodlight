@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imbalance Scanner — Bumper Coupon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0D13; --panel:#121722; --panel-2:#0F141D; --line:#222b39;
+    --ink:#E6EAF2; --muted:#8390a5; --faint:#5a6577;
+    --gold:#F5B941; --gold-dim:#7a5e1f;
+    --pass:#46D08A; --fail:#E8616B; --teal:#46C3D0; --bar:#1d2735;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif}
+  body{padding:18px 14px 70px;max-width:760px;margin:0 auto;-webkit-text-size-adjust:100%}
+  ::selection{background:var(--gold);color:#000}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:16px}
+  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;letter-spacing:-.01em;line-height:1}
+  h1 small{display:block;font-size:11px;font-weight:500;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin-top:6px}
+  .pulse{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);text-align:right;line-height:1.5}
+  .pulse b{color:var(--gold);font-weight:600}
+
+  .tabs{display:flex;gap:6px;margin-bottom:14px}
+  .tab{flex:1;text-align:center;padding:10px 6px;border:1px solid var(--line);border-radius:9px;background:var(--panel-2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer}
+  .tab.on{background:var(--panel);color:var(--ink);border-color:var(--teal)}
+  .pane{display:none} .pane.on{display:block}
+
+  label.fld{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 7px 2px;font-weight:600}
+  textarea{width:100%;min-height:120px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.5;padding:12px;resize:vertical}
+  textarea:focus{outline:none;border-color:var(--teal)}
+
+  .drop{border:1.5px dashed var(--line);border-radius:11px;background:var(--panel-2);padding:22px 16px;text-align:center;cursor:pointer}
+  .drop:active{border-color:var(--teal)}
+  .drop b{font-family:'Space Grotesk',sans-serif;display:block;font-size:14px;margin-bottom:5px}
+  .drop span{font-size:11.5px;color:var(--faint);line-height:1.5}
+  .thumbs{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+  .thumb{position:relative;width:54px;height:54px;border-radius:7px;overflow:hidden;border:1px solid var(--line)}
+  .thumb img{width:100%;height:100%;object-fit:cover}
+  .thumb b{position:absolute;top:1px;right:2px;background:#000a;color:#fff;font-size:10px;border-radius:4px;padding:0 4px;cursor:pointer}
+
+  .key{margin-top:12px}
+  .key input{width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:12px;padding:11px}
+  .key input:focus{outline:none;border-color:var(--teal)}
+  .key .hint{font-size:10.5px;color:var(--faint);margin:6px 2px 0;font-family:'IBM Plex Mono',monospace;line-height:1.5}
+
+  .autobox{border:1px solid var(--line);border-radius:11px;background:var(--panel-2);padding:16px}
+  .autobox p{font-size:12.5px;color:var(--muted);line-height:1.55;margin-bottom:12px}
+  .autobox input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:11px}
+  .autobox input:focus{outline:none;border-color:var(--teal)}
+  .autobox .hint{font-size:10.5px;color:var(--faint);margin:6px 2px 0;font-family:'IBM Plex Mono',monospace}
+
+  .filters{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0 6px}
+  .fb{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:9px 8px}
+  .fb span{display:block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:5px;font-weight:600}
+  .fb input{width:100%;background:transparent;border:none;color:var(--gold);font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600}
+  .fb input:focus{outline:none}
+  .fb small{color:var(--faint);font-size:9px}
+
+  .controls{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0 4px;flex-wrap:wrap}
+  .toggle{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none}
+  .toggle input{appearance:none;width:38px;height:21px;background:var(--line);border-radius:20px;position:relative;cursor:pointer;transition:background .15s;flex:none}
+  .toggle input:checked{background:var(--teal)}
+  .toggle input::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#fff;transition:transform .15s}
+  .toggle input:checked::after{transform:translateX(17px)}
+  .btn{flex:1;min-width:140px;background:var(--gold);color:#0A0D13;border:none;border-radius:10px;padding:13px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;cursor:pointer}
+  .btn:disabled{opacity:.5}
+  .btn:active{transform:translateY(1px)}
+  .ghost{background:transparent;color:var(--muted);border:1px solid var(--line);font-size:12px;padding:13px 14px;border-radius:10px;font-weight:500;cursor:pointer;flex:none}
+
+  .readout{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);margin:18px 2px 10px;display:flex;gap:16px;flex-wrap:wrap}
+  .readout b{color:var(--ink)} .readout .q{color:var(--gold)}
+
+  .pick{background:linear-gradient(180deg,#1a1608,#13110a);border:1px solid var(--gold-dim);border-radius:13px;padding:15px 16px;margin-bottom:16px;position:relative;overflow:hidden}
+  .pick::before{content:"TOP IMBALANCE";position:absolute;top:11px;right:14px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.18em;color:var(--gold);opacity:.8}
+  .pick .mt{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;line-height:1.25;padding-right:90px;margin-bottom:12px}
+  .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+  .leg{background:#0c0f17;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+  .leg span{display:block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+  .leg b{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600}
+  .leg.fav b{color:var(--gold)} .leg.fav{border-color:var(--gold-dim)}
+  .imb{display:flex;align-items:baseline;gap:8px}
+  .imb em{font-style:normal;font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;color:var(--gold)}
+  .imb span{font-size:11px;color:var(--muted)}
+  .meta{font-size:11px;color:var(--faint);margin-top:8px;font-family:'IBM Plex Mono',monospace}
+
+  .board{border:1px solid var(--line);border-radius:13px;overflow:hidden}
+  .brow{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:11px 13px;border-bottom:1px solid var(--line)}
+  .brow:last-child{border-bottom:none}
+  .rk{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--faint);font-weight:600}
+  .nm{font-size:13px;font-weight:500;line-height:1.3}
+  .nm .tag{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;color:var(--fail);border:1px solid var(--fail);border-radius:4px;padding:1px 4px;margin-left:6px;opacity:.85}
+  .od{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-top:3px}
+  .od u{text-decoration:none;color:var(--gold)}
+  .df{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;text-align:right;white-space:nowrap}
+  .barwrap{grid-column:1/-1;height:4px;background:var(--bar);border-radius:3px;margin-top:9px;overflow:hidden}
+  .barwrap i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--gold));border-radius:3px}
+
+  details{margin-top:16px;border:1px solid var(--line);border-radius:11px;background:var(--panel-2)}
+  summary{cursor:pointer;padding:13px 15px;font-size:12.5px;color:var(--muted);font-weight:500;list-style:none;display:flex;justify-content:space-between;align-items:center}
+  summary::-webkit-details-marker{display:none}
+  summary .c{font-family:'IBM Plex Mono',monospace;color:var(--faint);font-size:11px}
+  .nm-row{padding:10px 15px;border-top:1px solid var(--line);font-size:12.5px;display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+  .nm-row .why{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--fail)}
+  .nm-row .od2{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--faint);margin-top:2px}
+
+  .empty{text-align:center;padding:30px 20px;color:var(--muted);font-size:13px;line-height:1.6}
+  .empty b{color:var(--ink);display:block;font-family:'Space Grotesk',sans-serif;font-size:15px;margin-bottom:6px}
+  .err{border:1px solid var(--fail);background:#1a0e10;color:#f3a6ab;border-radius:10px;padding:12px 14px;font-size:12px;font-family:'IBM Plex Mono',monospace;margin-top:14px;line-height:1.5}
+  footer{margin-top:26px;text-align:center;font-size:10.5px;color:var(--faint);line-height:1.6;font-family:'IBM Plex Mono',monospace}
+  .spin{display:inline-block;width:12px;height:12px;border:2px solid #0008;border-top-color:#0A0D13;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+  <header>
+    <h1>Imbalance Scanner<small>Bumper Coupon · H/D/A</small></h1>
+    <div class="pulse" id="pulse">scan a board<br><b>idle</b></div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab on" data-pane="auto">Auto-pull</div>
+    <div class="tab" data-pane="img">Screenshot</div>
+    <div class="tab" data-pane="txt">Paste</div>
+  </div>
+
+  <!-- AUTO PANE -->
+  <div class="pane on" id="pane-auto">
+    <div class="autobox">
+      <p>One-tap live pull via your Netlify function. No API key needed. If it comes back empty, oddschecker blocked the function — drop to Screenshot mode.</p>
+      <input id="endpoint" type="text" placeholder="/.netlify/functions/coupon">
+      <div class="hint">same-site default works on socceredge.netlify.app · for a saved local file paste the full https URL</div>
+    </div>
+  </div>
+
+  <!-- IMAGE PANE -->
+  <div class="pane" id="pane-img">
+    <div class="drop" id="drop">
+      <b>Add coupon screenshots</b>
+      <span>Tap to pick or shoot. Add several to cover the whole board — the model reads odds &amp; team names off the image.</span>
+    </div>
+    <input type="file" id="file" accept="image/*" multiple hidden>
+    <div class="thumbs" id="thumbs"></div>
+    <div class="key">
+      <input id="apikey" type="password" placeholder="Anthropic API key (sk-ant-…) — this device only">
+      <div class="hint">your shared Anthropic key · stored in localStorage · used directly from your browser</div>
+    </div>
+  </div>
+
+  <!-- TEXT PANE -->
+  <div class="pane" id="pane-txt">
+    <label class="fld" for="src">Coupon text</label>
+    <textarea id="src" placeholder="Paste coupon text if it ever copies. Rows read in Home / Draw / Away order, fractional or decimal."></textarea>
+  </div>
+
+  <div class="filters">
+    <div class="fb"><span>Fav min</span><input id="favMin" type="number" step="0.01" value="1.50"><small>≥ incl</small></div>
+    <div class="fb"><span>Fav max</span><input id="favMax" type="number" step="0.01" value="1.75"><small>≤ incl</small></div>
+    <div class="fb"><span>Draw min</span><input id="drawMin" type="number" step="0.1" value="3.6"><small>&gt; strict</small></div>
+    <div class="fb"><span>Diff min</span><input id="diffMin" type="number" step="0.1" value="3.3"><small>≥ incl</small></div>
+  </div>
+
+  <div class="controls">
+    <label class="toggle"><input type="checkbox" id="excl" checked> Exclude In-Play</label>
+  </div>
+  <div class="controls">
+    <button class="btn" id="run">Scan board</button>
+    <button class="ghost" id="sample">Sample</button>
+  </div>
+
+  <div id="out"></div>
+
+  <footer>
+    single-file · auto-pull proxies your Netlify function · vision via api.anthropic.com<br>
+    18+ · for your own model only · gamble responsibly
+  </footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const MODEL = 'claude-sonnet-4-6';
+let images = [];
+let parsedRows = [];
+
+/* ---------- odds helpers ---------- */
+function toDec(t){
+  t=String(t).trim();
+  if(t.includes('/')){ const [a,b]=t.split('/').map(Number); return b? a/b+1 : NaN; }
+  return parseFloat(t);
+}
+const r2 = n => Math.round(n*100)/100;
+
+/* ---------- text parser (paste fallback) ---------- */
+function splitName(raw){
+  raw=raw.replace(/\s+/g,' ').trim();
+  const seams=[]; const re=/[a-z0-9)](?=[A-Z])/g; let m;
+  while((m=re.exec(raw))) seams.push(m.index+1);
+  if(!seams.length) return {home:raw,away:''};
+  const mid=raw.length/2; let best=seams[0];
+  for(const s of seams) if(Math.abs(s-mid)<Math.abs(best-mid)) best=s;
+  return {home:raw.slice(0,best).trim(), away:raw.slice(best).trim()};
+}
+function parseText(text){
+  let t=text.replace(/\[[^\]]*\]\([^)]*\)/g,' ').replace(/View all[^\n]*?odds/gi,' ')
+    .replace(/All Odds/gi,' ').replace(/Home\s+Draw\s+Away/gi,' | ').replace(/https?:\/\/\S+/g,' ');
+  const ODD=String.raw`\d+\/\d+|\d+\.\d+`;
+  const re=new RegExp(String.raw`([^\n|]*?)\s(${ODD})\s+(${ODD})\s+(${ODD})(?=\s|$)`,'g');
+  const rows=[]; let m;
+  while((m=re.exec(t))){
+    let name=m[1]; const inplay=/in\s*play/i.test(name);
+    name=name.replace(/in\s*play/ig,'').replace(/\b\d{1,2}:\d{2}\b/g,'').replace(/^[\s|–-]+/,'').replace(/[\s|]+$/,'').trim();
+    if(name.length<2) continue;
+    const home=toDec(m[2]),draw=toDec(m[3]),away=toDec(m[4]);
+    if(![home,draw,away].every(x=>x>1&&x<1000)) continue;
+    const sp=splitName(name);
+    rows.push({home:sp.home,away:sp.away,oddH:home,oddD:draw,oddA:away,inplay});
+  }
+  return rows;
+}
+
+/* ---------- auto-pull parser (raw HTML from the Netlify function) ----------
+   Anchor on each "View all HOME v AWAY odds" link title for clean names.
+   Each row's 3 odds are the last 3 numeric tokens in the HTML segment
+   leading up to that link (names/odds precede the All-Odds link in the DOM). */
+function parseCouponHtml(html){
+  const re=/View all (.+?) v (.+?) odds/g;
+  const rows=[]; let m, lastIdx=0, curDate='';
+  while((m=re.exec(html))){
+    const seg=html.slice(lastIdx, m.index);
+    const segText=seg.replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ');
+    // section date carried forward (Today / 29th June / weekday)
+    const dM=segText.match(/Today|Tomorrow|\d{1,2}(?:st|nd|rd|th)\s+\w+|(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\w*day\s+\d{1,2}\w*\s+\w+/i);
+    if(dM) curDate=dM[0];
+    const inplay=/in[\s-]*play/i.test(segText);
+    const time=(segText.match(/\b\d{1,2}:\d{2}\b/)||[])[0]||'';
+    const toks=(segText.replace(/\b\d{1,2}:\d{2}\b/g,' ').match(/\d+\/\d+|\d+\.\d+|\d+/g))||[];
+    const last3=toks.slice(-3).map(toDec);
+    lastIdx=m.index;
+    if(last3.length===3 && last3.every(x=>x>1&&x<1000)){
+      rows.push({home:m[1].replace(/&amp;/g,'&').trim(), away:m[2].replace(/&amp;/g,'&').trim(),
+        oddH:last3[0], oddD:last3[1], oddA:last3[2], inplay, time, date:curDate});
+    }
+  }
+  return rows;
+}
+async function autoPull(){
+  const ep=($('#endpoint').value.trim()||'/.netlify/functions/coupon');
+  const resp=await fetch(ep,{cache:'no-store'});
+  if(!resp.ok) throw new Error('proxy '+resp.status+' '+resp.statusText);
+  const j=await resp.json();
+  if(j.ok===false) throw new Error(j.error||'fetch failed in function');
+  const rows=parseCouponHtml(j.html||'');
+  if(!rows.length) throw new Error(`0 matches parsed (got ${j.length||0} bytes, ${j.matches_seen||0} rows seen). Likely blocked/geo — use Screenshot.`);
+  return rows;
+}
+
+/* ---------- vision scan (screenshots) ---------- */
+function fileToB64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res({b64:r.result.split(',')[1],media:file.type||'image/jpeg',url:r.result});
+    r.onerror=()=>rej(new Error('read failed'));
+    r.readAsDataURL(file);
+  });
+}
+const VISION_PROMPT =
+`You are reading screenshots of an oddschecker football coupon. Columns are Home, Draw, Away.
+Extract EVERY match across all images. Convert fractional odds to decimal (num/den+1, 2dp); keep decimal odds as-is.
+Mark inplay true only if the row shows "In Play"/"LIVE".
+Return ONLY a JSON array, no prose, no fences. Each element:
+{"home":string,"away":string,"oddH":number,"oddD":number,"oddA":number,"inplay":boolean}
+Skip any row where you cannot read all three prices.`;
+async function visionScan(){
+  const key=$('#apikey').value.trim();
+  if(!key) throw new Error('No API key. Paste your sk-ant- key first.');
+  if(!images.length) throw new Error('Add at least one screenshot.');
+  const content=[{type:'text',text:VISION_PROMPT}];
+  images.forEach(im=>content.push({type:'image',source:{type:'base64',media_type:im.media,data:im.b64}}));
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:MODEL,max_tokens:4096,messages:[{role:'user',content}]})
+  });
+  if(!resp.ok){let msg=resp.status+' '+resp.statusText;try{const e=await resp.json();if(e.error&&e.error.message)msg=e.error.message;}catch(_){}throw new Error(msg);}
+  const data=await resp.json();
+  const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+  const clean=text.replace(/```json/gi,'').replace(/```/g,'').trim();
+  const s=clean.indexOf('['), e=clean.lastIndexOf(']');
+  if(s<0||e<0) throw new Error('Model did not return JSON. Raw: '+clean.slice(0,120));
+  const arr=JSON.parse(clean.slice(s,e+1));
+  const seen=new Set(); const rows=[];
+  for(const r of arr){
+    if(r==null) continue;
+    const oddH=+r.oddH,oddD=+r.oddD,oddA=+r.oddA;
+    if(![oddH,oddD,oddA].every(x=>x>1&&x<1000)) continue;
+    const k=((r.home||'')+'|'+(r.away||'')).toLowerCase().replace(/\s+/g,'');
+    if(seen.has(k)) continue; seen.add(k);
+    rows.push({home:r.home||'?',away:r.away||'?',oddH,oddD,oddA,inplay:!!r.inplay});
+  }
+  return rows;
+}
+
+/* ---------- filter engine ---------- */
+function evaluate(rows,f){
+  return rows.map(r=>{
+    const favIsHome=r.oddH<=r.oddA;
+    const fav=Math.min(r.oddH,r.oddA), dog=Math.max(r.oddH,r.oddA);
+    const diff=r2(dog-fav);
+    const okFav=fav>=f.favMin&&fav<=f.favMax, okDraw=r.oddD>f.drawMin, okDiff=diff>=f.diffMin;
+    return {...r,favIsHome,fav:r2(fav),dog:r2(dog),diff,okFav,okDraw,okDiff,pass:okFav&&okDraw&&okDiff};
+  });
+}
+function label(r){ return (r.away&&r.away!=='?') ? `${r.home}  v  ${r.away}` : r.home; }
+function fmtOdds(r){
+  const h=r.favIsHome?`<u>${r2(r.oddH)}</u>`:r2(r.oddH);
+  const a=r.favIsHome?r2(r.oddA):`<u>${r2(r.oddA)}</u>`;
+  return `H ${h} · D ${r2(r.oddD)} · A ${a}`;
+}
+function render(rows){
+  const f={favMin:+$('#favMin').value,favMax:+$('#favMax').value,drawMin:+$('#drawMin').value,diffMin:+$('#diffMin').value};
+  const excl=$('#excl').checked;
+  const total=rows.length;
+  let pool=excl?rows.filter(r=>!r.inplay):rows;
+  const ev=evaluate(pool,f);
+  const pass=ev.filter(r=>r.pass).sort((a,b)=>b.diff-a.diff);
+  const near=ev.filter(r=>r.okFav&&r.okDraw&&!r.okDiff&&r.diff>=f.diffMin-0.6).sort((a,b)=>b.diff-a.diff);
+  $('#pulse').innerHTML=`read <b>${total}</b> matches<br>${pass.length?`<b>${pass.length}</b> qualify`:'no qualifiers'}`;
+  const out=$('#out');
+  if(!total){ out.innerHTML=`<div class="empty"><b>Nothing read</b>No matches detected.</div>`; return; }
+  if(!pass.length){
+    out.innerHTML=`<div class="readout"><span><b>${total}</b> matches</span><span>${excl?'in-play excluded · ':''}<b>0</b> through filters</span></div>`
+      +(near.length?nearBlock(near):'')
+      +`<div class="empty"><b>No selection</b>Nothing cleared fav ${f.favMin}–${f.favMax}, draw &gt;${f.drawMin}, diff ≥${f.diffMin}.</div>`;
+    return;
+  }
+  const max=pass[0].diff, top=pass[0];
+  let html=`<div class="readout"><span><b>${total}</b> matches read</span><span>${excl?'in-play excluded':'in-play included'}</span><span class="q"><b>${pass.length}</b> qualify</span></div>`;
+  html+=`<div class="pick"><div class="mt">${label(top)}</div>
+    <div class="row3">
+      <div class="leg ${top.favIsHome?'fav':''}"><span>Home</span><b>${r2(top.oddH)}</b></div>
+      <div class="leg"><span>Draw</span><b>${r2(top.oddD)}</b></div>
+      <div class="leg ${!top.favIsHome?'fav':''}"><span>Away</span><b>${r2(top.oddA)}</b></div>
+    </div>
+    <div class="imb"><em>${top.diff.toFixed(2)}</em><span>imbalance · fav ${top.fav} (${top.favIsHome?'home':'away'}) vs ${top.dog}</span></div>
+    <div class="meta">${[top.date,top.time].filter(Boolean).join(' · ')}${top.inplay?' · ⚠ IN-PLAY':''}</div></div>`;
+  html+=`<div class="board">`;
+  pass.forEach((r,i)=>{
+    html+=`<div class="brow"><div class="rk">${String(i+1).padStart(2,'0')}</div>
+      <div><div class="nm">${label(r)}${r.inplay?'<span class="tag">LIVE</span>':''}</div>
+      <div class="od">${fmtOdds(r)}${r.time?'  ·  '+r.time:''}${r.date?'  ·  '+r.date:''}</div>
+      <div class="barwrap"><i style="width:${Math.max(6,r.diff/max*100)}%"></i></div></div>
+      <div class="df">${r.diff.toFixed(2)}</div></div>`;
+  });
+  html+=`</div>`;
+  if(near.length) html+=nearBlock(near);
+  out.innerHTML=html;
+}
+function nearBlock(near){
+  let h=`<details><summary><span>Near misses — valid fav + draw, diff just short</span><span class="c">${near.length}</span></summary>`;
+  near.forEach(r=>{ h+=`<div class="nm-row"><div><div>${label(r)}</div><div class="od2">${fmtOdds(r)}</div></div><div class="why">diff ${r.diff.toFixed(2)}</div></div>`; });
+  return h+`</details>`;
+}
+
+/* ---------- run ---------- */
+async function run(){
+  const out=$('#out');
+  const mode=document.querySelector('.tab.on').dataset.pane;
+  const btn=$('#run');
+  try{
+    if(mode==='txt'){ parsedRows=parseText($('#src').value); render(parsedRows); return; }
+    btn.disabled=true; btn.innerHTML='<span class="spin"></span>'+(mode==='auto'?'Pulling…':'Reading…');
+    $('#pulse').innerHTML=(mode==='auto'?'live pull':'vision read')+'<br><b>working…</b>';
+    parsedRows = mode==='auto' ? await autoPull() : await visionScan();
+    render(parsedRows);
+  }catch(e){
+    out.innerHTML=`<div class="err">${mode==='auto'?'Auto-pull':'Scan'} failed — ${String(e.message||e)}</div>`;
+    $('#pulse').innerHTML='scan a board<br><b>error</b>';
+  }finally{ btn.disabled=false; btn.textContent='Scan board'; }
+}
+
+/* ---------- ui ---------- */
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on'); $('#pane-'+t.dataset.pane).classList.add('on');
+}));
+$('#drop').addEventListener('click',()=>$('#file').click());
+$('#file').addEventListener('change',async e=>{ for(const f of e.target.files){ try{ images.push(await fileToB64(f)); }catch(_){} } drawThumbs(); e.target.value=''; });
+function drawThumbs(){
+  $('#thumbs').innerHTML=images.map((im,i)=>`<div class="thumb"><img src="${im.url}"><b data-i="${i}">✕</b></div>`).join('');
+  document.querySelectorAll('.thumb b').forEach(b=>b.addEventListener('click',()=>{ images.splice(+b.dataset.i,1); drawThumbs(); }));
+}
+$('#apikey').value=localStorage.getItem('oc_anthropic_key')||'';
+$('#apikey').addEventListener('change',()=>localStorage.setItem('oc_anthropic_key',$('#apikey').value.trim()));
+$('#endpoint').value=localStorage.getItem('oc_endpoint')||'/.netlify/functions/coupon';
+$('#endpoint').addEventListener('change',()=>localStorage.setItem('oc_endpoint',$('#endpoint').value.trim()));
+
+$('#run').addEventListener('click',run);
+$('#sample').addEventListener('click',()=>{
+  document.querySelector('.tab[data-pane="txt"]').click();
+  $('#src').value=`13:00 FC NordsjaellandAC Horsens 5/8 16/5 4/1 All Odds
+13:00 Raith RoversHamilton 6/11 16/5 17/4 All Odds
+17:00 FCI TallinnFC Flora Tallinn 1/2 17/5 24/5 All Odds
+15:00 EB/StreymurB36 Torshavn 27/5 31/10 3/5 All Odds
+12:00 Sexy PoxytMPS 1/2 15/4 4/1 All Odds
+14:00 AirdrieElgin 7/10 3/1 7/2 All Odds`;
+  run();
+});
+['favMin','favMax','drawMin','diffMin'].forEach(id=>$('#'+id).addEventListener('change',()=>{ if(parsedRows.length) render(parsedRows); }));
+$('#excl').addEventListener('change',()=>{ if(parsedRows.length) render(parsedRows); });
+</script>
+</body>
+</html>
